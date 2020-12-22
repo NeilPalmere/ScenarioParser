@@ -6,10 +6,10 @@ from struct import *
 
 def get_section_header(file, offset):
     file.seek(offset, 0)
-    section_36_header_data = file.read(8)
-    section_36_header = unpack('<II', section_36_header_data)
-    byte_size = section_36_header[0]
-    element_count = section_36_header[1]
+    section_header_data = file.read(8)
+    section_header = unpack('<II', section_header_data)
+    byte_size = section_header[0]
+    element_count = section_header[1]
     logging.debug(f'Section size: {byte_size} bytes | element_count {element_count}')
     return element_count
 
@@ -33,7 +33,7 @@ def decompile(scenario_file, out_path) -> None:
 
         logging.info(f'Magic: {hex(header[0])}')
         logging.info(f'Size: {header[1]} bytes')
-        logging.debug(f'commands_offset: {hex(header[8])}')
+        logging.debug(f'script_offset: {hex(header[8])}')
         logging.debug(f'offset_36: {hex(header[9])}')
         logging.debug(f'offset_40: {hex(header[10])}')
         logging.debug(f'offset_44: {hex(header[11])}')
@@ -41,29 +41,29 @@ def decompile(scenario_file, out_path) -> None:
         logging.debug(f'offset_56: {hex(header[14])}')
         logging.debug(f'offset_60: {hex(header[15])}')
 
-        commands_offset = header[8]
+        script_offset = header[8]
 
-        # Section_36
+        # Section_36 - Masks
         section_36_list = section_36(file, header)
         logging.debug(section_36_list)
 
-        # Section_40
+        # Section_40 - Backgrounds
         section_40_list = section_40(file, header)
         logging.debug(section_40_list)
 
-        # Section_44
+        # Section_44 - Bustup
         section_44_list = section_44(file, header)
         logging.debug(section_44_list)
 
-        # Section_52
+        # Section_52 - Sound Effects
         section_52_list = section_52(file, header)
         logging.debug(section_52_list)
 
-        # Section_56
+        # Section_56 - Movies
         section_56_list = section_56(file, header)
         logging.debug(section_56_list)
 
-        # Section_60
+        # Section_60 - Voice
         section_60_list = section_60(file, header)
         logging.debug(section_60_list)
 
@@ -82,15 +82,16 @@ def decompile(scenario_file, out_path) -> None:
 
         # Dump commands section
         with open(out_path + '/code_dump.bin', "wb") as out_file:
-            file.seek(commands_offset, 0)
+            file.seek(script_offset, 0)
             while byte := file.read(1):
                 out_file.write(byte)
         logging.info(f'Code section dump written.')
 
-        # Code Section
-        code_section(file, header, out_path)
+        # Parse Script
+        script_section(file, header, out_path)
 
 
+# Masks
 def section_36(file, header):
     element_count = get_section_header(file, header[9])
     section_36_list = []
@@ -99,6 +100,7 @@ def section_36(file, header):
     return section_36_list
 
 
+# Backgrounds
 def section_40(file, header):
     element_count = get_section_header(file, header[10])
     section_40_list = []
@@ -109,6 +111,7 @@ def section_40(file, header):
     return section_40_list
 
 
+# Bustup
 def section_44(file, header):
     element_count = get_section_header(file, header[11])
     section_44_list = []
@@ -120,6 +123,7 @@ def section_44(file, header):
     return section_44_list
 
 
+# Sound Effects
 def section_52(file, header):
     element_count = get_section_header(file, header[13])
     section_52_list = []
@@ -128,6 +132,7 @@ def section_52(file, header):
     return section_52_list
 
 
+# Movies
 def section_56(file, header):
     element_count = get_section_header(file, header[14])
     section_56_list = []
@@ -138,6 +143,7 @@ def section_56(file, header):
     return section_56_list
 
 
+# Voice
 def section_60(file, header):
     element_count = get_section_header(file, header[15])
     section_60_list = []
@@ -149,7 +155,7 @@ def section_60(file, header):
     return section_60_list
 
 
-def code_section(file, header, out_path):
+def script_section(file, header, out_path):
     size = header[1]
     commands_offset = header[8]
     code_size = size - commands_offset
